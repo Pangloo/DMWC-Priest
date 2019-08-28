@@ -24,7 +24,7 @@ local function Locals()
     Player40Y, Player40YC = Player:GetEnemies(40)
     MeleeAggro = false
     for _, Unit in ipairs(Player40Y) do
-        if Unit.Distance < 10 and Player.Pointer == Unit.Target then
+        if Unit.Distance < 5 and Player.Pointer == Unit.Target then
             MeleeAggro = true
         end
     end
@@ -41,8 +41,12 @@ local function DPS()
         end
     end
 
-    if Setting("Smite") and Target and Target.ValidEnemy and not MeleeAggro and Power > Setting("Mana Cut Off") then
-        Spell.Smite:Cast(Target)
+    if Setting("Mind Blast") and not MeleeAggro and Power > Setting("Mana Cut Off") then
+        if Spell.MindBlast:Cast(Target) then return true end
+    end
+
+    if Setting("Smite") and not MeleeAggro and Power > Setting("Mana Cut Off") then
+        if Spell.Smite:Cast(Target) then return true end
     end
 
     if not Player.Moving and not IsCurrentSpell(Spell.Shoot.SpellID) and (DMW.Time - ShootTime) > 0.6 then
