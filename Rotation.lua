@@ -79,6 +79,9 @@ function Priest.Rotation()
         if DEF() then return true end
         if Player.Combat then
             Player:AutoTarget(40, true)
+            if not DMW.Player.Equipment[18] and not IsCurrentSpell(Spell.Attack.SpellID) then
+                StartAttack()
+            end
             if DPS() then
                 return true
             end
