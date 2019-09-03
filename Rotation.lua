@@ -24,7 +24,7 @@ local function Locals()
     Player40Y, Player40YC = Player:GetEnemies(40)
     MeleeAggro = false
     for _, Unit in ipairs(Player40Y) do
-        if Unit.Distance < 7 and Player.Pointer == Unit.Target then
+        if Unit.Distance < 6 and Player.Pointer == Unit.Target then
             MeleeAggro = true
         end
     end
