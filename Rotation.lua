@@ -30,28 +30,72 @@ local function Locals()
     end
 end
 
+local function FiveSecond()
+    if FiveSecondRuleTime == nil then
+        FiveSecondRuleTime = DMW.Time 
+    end
+    local FiveSecondRuleCount = DMW.Time - FiveSecondRuleTime
+    if FiveSecondRuleCount > 5 then
+        FiveSecondRuleTime = DMW.Time 
+    end
+    if Setting("Five Second Rule") and (FiveSecondRuleCount) >= Setting("Five Second Cutoff") then return true end
+    --print(FiveSecondRuleCount)
+end
+
+local function HEAL()
+    if Friends40YC >= 1 then
+        if Setting("Fort Buff Spread") then
+            for _, Friend in ipairs(Friends40Y) do
+                if not Buff.PowerWordFortitude:Exist(Friend) then
+                    if Spell.PowerWordFortitude:Cast(Friend) then return true end
+                end
+            end 
+        end
+        for _, Friend in ipairs(Friends40Y) do
+            if Setting("Party - Heal") and Friend.HP < Setting("Party - Heal Percent") and Spell.Heal:Cast(Friend) then FiveSecondRuleTime = DMW.Time
+                return true end
+        end
+        for _, Friend in ipairs(Friends40Y) do
+            if Setting("Party - Flash Heal") and Spell.FlashHeal:IsReady() and Friend.HP < Setting("Party - Flash Heal Percent") and Spell.FlashHeal:Cast(Friend) then FiveSecondRuleTime = DMW.Time
+                return true end
+        end
+        for _, Friend in ipairs(Friends40Y) do
+            if Setting("Party - Lesser Heal") and Spell.LesserHeal:IsReady() and Friend.HP < Setting("Party - Lesser Heal Percent") and Spell.LesserHeal:Cast(Friend) then FiveSecondRuleTime = DMW.Time
+                return true	end
+        end
+        for _, Friend in ipairs(Friends40Y) do
+            if Setting("Party - Shield") and Friend.HP < Setting("Party - Shield Percent") and not Buff.PowerWordShield:Exist(Friend) and not Debuff.WeakenedSoul:Exist(Friend) and Spell.PowerWordShield:Cast(Friend) then FiveSecondRuleTime = DMW.Time
+                return true	end
+        end
+        for _, Friend in ipairs(Friends40Y) do
+            if Setting("Party - Renew") and Friend.HP < Setting("Party - Renew Percent") and not Buff.Renew:Exist(Friend) and Spell.Renew:Cast(Friend) then FiveSecondRuleTime = DMW.Time
+                return true	end
+        end
+    end
+end
+
 local function DPS()
     if Setting("Shadow Word: Pain") then
         for _, Unit in ipairs(Player40Y) do
             if Debuff.ShadowWordPain:Refresh(Unit) and (Unit.TTD - Debuff.ShadowWordPain:Remain(Unit)) > 4 or not Debuff.ShadowWordPain:Exist(Unit) then
-                if Spell.ShadowWordPain:Cast(Unit) then
+                if Spell.ShadowWordPain:Cast(Unit) then FiveSecondRuleTime = DMW.Time
                     return true
                 end
             end
         end
     end
 
-    if Setting("Mind Blast") and not MeleeAggro and Power > Setting("Mana Cut Off") then
+    if Setting("Mind Blast") and not MeleeAggro and Power > Setting("Mana Cut Off") and Spell.MindBlast:IsReady() then
         if IsAutoRepeatSpell(Spell.Shoot.SpellName) then
             MoveForwardStart()
             MoveForwardStop()
             ShootTime = DMW.Time
         end
-        if Spell.MindBlast:Cast(Target) then return true end
+        if Spell.MindBlast:Cast(Target) then FiveSecondRuleTime = DMW.Time return true end
     end
 
     if Setting("Smite") and not MeleeAggro and Power > Setting("Mana Cut Off") then
-        if Spell.Smite:Cast(Target) then return true end
+        if Spell.Smite:Cast(Target) then FiveSecondRuleTime = DMW.Time return true end
     end
 
     if not Player.Moving and not IsAutoRepeatSpell(Spell.Shoot.SpellName) and (DMW.Time - ShootTime) > 0.7 then
@@ -66,8 +110,11 @@ local function DEF()
     if not Buff.PowerWordFortitude:Exist(Player) then 
         if Spell.PowerWordFortitude:Cast(Player) then return true end
     end
-    if not Buff.Renew:Exist(Player) and Setting("Renew") and (HP < Setting("Renew Percent") or (not Player.Combat and HP < 80)) and Power > 15 then
-        if Spell.Renew:Cast(Player) then return true end
+	if not Buff.InnerFire:Exist(Player) then 
+        if Spell.InnerFire:Cast(Player) then return true end
+    end
+    if not Buff.Renew:Exist(Player) and Setting("Renew") and (HP <= Setting("Renew Percent") or (not Player.Combat and HP < 80)) and Power > 15 then
+        if Spell.Renew:Cast(Player) then FiveSecondRuleTime = DMW.Time return true end
     end
     if Setting("Use Lesser Heal") and HP < Setting("Heal Percent") and Power > 15 then
         if Spell.LesserHeal:Cast(Player) then return true end
@@ -80,19 +127,23 @@ end
 function Priest.Rotation()
     Locals()
     if Rotation.Active() then
+        if FiveSecond() then return true end
         if Setting("Pull Spell") and Target and Target.ValidEnemy and not Debuff.ShadowWordPain:Exist(Target) then
             if Spell.ShadowWordPain:Cast(Target) then
                 return true
             end
         end
         if DEF() then return true end
+        if HEAL() then return true end
         if Player.Combat then
-            Player:AutoTarget(40, true)
             if not DMW.Player.Equipment[18] and not IsCurrentSpell(Spell.Attack.SpellID) then
                 StartAttack()
             end
-            if DPS() then
-                return true
+            if Setting("DPS Stuff") then
+                Player:AutoTarget(40, true)
+                if DPS() then
+                    return true
+                end
             end
         end
     end
