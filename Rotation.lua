@@ -30,6 +30,13 @@ local function Locals()
     end
 end
 
+local function smartRecast(spell,unit)
+    if (not Spell[spell]:LastCast() or (DMW.Player.LastCast[1].SuccessTime and (DMW.Time - DMW.Player.LastCast[1].SuccessTime) > 0.7) or 
+        not UnitIsUnit(Spell[spell].LastBotTarget, unit.Pointer)) then 
+            if Spell[spell]:Cast(unit) then return true end
+    end
+end
+
 local function FiveSecond()
     if FiveSecondRuleTime == nil then
         FiveSecondRuleTime = DMW.Time 
@@ -52,24 +59,21 @@ local function HEAL()
             end 
         end
         for _, Friend in ipairs(Friends40Y) do
-            if Setting("Party - Heal") and Friend.HP < Setting("Party - Heal Percent") and Spell.Heal:Cast(Friend) then FiveSecondRuleTime = DMW.Time
-                return true end
-        end
-        for _, Friend in ipairs(Friends40Y) do
-            if Setting("Party - Flash Heal") and Spell.FlashHeal:IsReady() and Friend.HP < Setting("Party - Flash Heal Percent") and Spell.FlashHeal:Cast(Friend) then FiveSecondRuleTime = DMW.Time
-                return true end
-        end
-        for _, Friend in ipairs(Friends40Y) do
-            if Setting("Party - Lesser Heal") and Spell.LesserHeal:IsReady() and Friend.HP < Setting("Party - Lesser Heal Percent") and Spell.LesserHeal:Cast(Friend) then FiveSecondRuleTime = DMW.Time
-                return true	end
-        end
-        for _, Friend in ipairs(Friends40Y) do
-            if Setting("Party - Shield") and Friend.HP < Setting("Party - Shield Percent") and not Buff.PowerWordShield:Exist(Friend) and not Debuff.WeakenedSoul:Exist(Friend) and Spell.PowerWordShield:Cast(Friend) then FiveSecondRuleTime = DMW.Time
-                return true	end
-        end
-        for _, Friend in ipairs(Friends40Y) do
-            if Setting("Party - Renew") and Friend.HP < Setting("Party - Renew Percent") and not Buff.Renew:Exist(Friend) and Spell.Renew:Cast(Friend) then FiveSecondRuleTime = DMW.Time
-                return true	end
+            if Setting("Party - Heal") and Friend.HP < Setting("Party - Heal Percent") then
+                if smartRecast("Heal",Friend) then FiveSecondRuleTime = DMW.Time return true end
+            end
+            if Setting("Party - Flash Heal") and Spell.FlashHeal:IsReady() and Friend.HP < Setting("Party - Flash Heal Percent") then
+                if smartRecast("FlashHeal",Friend) then FiveSecondRuleTime = DMW.Time return true end
+            end
+            if Setting("Party - Lesser Heal") and Spell.LesserHeal:IsReady() and Friend.HP <= Setting("Party - Lesser Heal Percent") then
+                if smartRecast("LesserHeal",Friend) then FiveSecondRuleTime = DMW.Time return true end
+            end
+            if Setting("Party - Shield") and Friend.HP < Setting("Party - Shield Percent") and not Buff.PowerWordShield:Exist(Friend) and not Debuff.WeakenedSoul:Exist(Friend) then
+                if smartRecast("PowerWordShield",Friend) then FiveSecondRuleTime = DMW.Time return true end
+            end
+            if Setting("Party - Renew") and Friend.HP < Setting("Party - Renew Percent") and not Buff.Renew:Exist(Friend) then
+                if smartRecast("Renew",Friend) then FiveSecondRuleTime = DMW.Time return true end
+            end
         end
     end
 end
@@ -78,7 +82,7 @@ local function DPS()
     if Setting("Shadow Word: Pain") then
         for _, Unit in ipairs(Player40Y) do
             if Debuff.ShadowWordPain:Refresh(Unit) and (Unit.TTD - Debuff.ShadowWordPain:Remain(Unit)) > 4 or not Debuff.ShadowWordPain:Exist(Unit) then
-                if Spell.ShadowWordPain:Cast(Unit) then FiveSecondRuleTime = DMW.Time
+                if smartRecast("ShadowWordPain",Unit) then FiveSecondRuleTime = DMW.Time
                     return true
                 end
             end
@@ -129,7 +133,7 @@ function Priest.Rotation()
     if Rotation.Active() then
         if FiveSecond() then return true end
         if Setting("Pull Spell") and Target and Target.ValidEnemy and not Debuff.ShadowWordPain:Exist(Target) then
-            if Spell.ShadowWordPain:Cast(Target) then
+            if smartRecast("ShadowWordPain",Target) then
                 return true
             end
         end
