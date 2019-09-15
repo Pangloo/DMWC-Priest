@@ -80,13 +80,13 @@ local function HEAL()
             if Setting("Party - Renew") and Friend.HP < Setting("Party - Renew Percent") and not Buff.Renew:Exist(Friend) and Friend:IsTanking() and Buff.Renew:Count() < Setting("Renew Count Limit") then
                 if smartRecast("Renew",Friend) then FiveSecondRuleTime = DMW.Time return true end
             end
-            -- Party Heal
-            if Setting("Party - Heal") and Friend.HP < Setting("Party - Heal Percent") then
-                if smartRecast("Heal",Friend) then FiveSecondRuleTime = DMW.Time return true end
-            end
             -- Party Flash Heal
             if Setting("Party - Flash Heal") and Spell.FlashHeal:IsReady() and Friend.HP < Setting("Party - Flash Heal Percent") then
                 if smartRecast("FlashHeal",Friend) then FiveSecondRuleTime = DMW.Time return true end
+            end
+            -- Party Heal
+            if Setting("Party - Heal") and Friend.HP < Setting("Party - Heal Percent") then
+                if smartRecast("Heal",Friend) then FiveSecondRuleTime = DMW.Time return true end
             end
             -- Party Lesser Heal
             if Setting("Party - Lesser Heal") and Spell.LesserHeal:IsReady() and Friend.HP <= Setting("Party - Lesser Heal Percent") then
@@ -142,7 +142,7 @@ end
 
 local function DEF()
     --Auto Fade
-    if Setting("Auto Fade") and MeleeAggro and Friends40YC > 1 and Spell.Fade:IsReady() then
+    if Setting("Auto Fade") and Player:IsTanking() and Friends40YC > 1 and Spell.Fade:IsReady() then
         if Spell.Fade:Cast(Player) then return true end
     end
 
@@ -206,6 +206,7 @@ function Priest.Rotation()
             end
             if Setting("DPS Stuff") then
                 -- Auto Target Enemy regardless of target
+                Player:AutoTarget(40, true)
                 if HUD.TargetLock == 1 and UnitIsFriend(Target) then
                     TargetLastEnemy()
                 end
