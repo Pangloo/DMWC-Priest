@@ -141,6 +141,11 @@ local function DPS()
 end
 
 local function DEF()
+    --Auto Fade
+    if Setting("Auto Fade") and MeleeAggro and Friends40YC > 1 and Spell.Fade:IsReady() then
+        if Spell.Fade:Cast(Player) then return true end
+    end
+
     --Fortitude Self Check
     if not Buff.PowerWordFortitude:Exist(Player) then 
         if Spell.PowerWordFortitude:Cast(Player) then return true end
