@@ -163,11 +163,11 @@ local function DEF()
         if Spell.Renew:Cast(Player) then FiveSecondRuleTime = DMW.Time return true end
     end
     --Defensive Lesser Heal
-    if Setting("Use Lesser Heal") and HP < Setting("Heal Percent") and Power > 15 then
+    if Setting("Use Lesser Heal") and HP <= Setting("Heal Percent") and Power > 15 then
         if Spell.LesserHeal:Cast(Player) then return true end
     end
     --Defensive Shield
-    if Player.Combat and Setting("Power Word: Shield") and HP < Setting("Shield Percent") and Power > 30 and not Debuff.WeakenedSoul:Exist(Player) then
+    if (Player.Combat or Setting("OoC Shield")) and Setting("Power Word: Shield") and HP <= Setting("Shield Percent") and Power > 30 and not Debuff.WeakenedSoul:Exist(Player) then
         if Spell.PowerWordShield:Cast(Player) then return true end
     end
 end
