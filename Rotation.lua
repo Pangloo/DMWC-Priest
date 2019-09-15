@@ -57,7 +57,7 @@ local function FiveSecond()
     if FiveSecondRuleCount > 5 then
         FiveSecondRuleTime = DMW.Time 
     end
-    if Setting("Five Second Rule") and ((FiveSecondRuleCount) >= Setting("Five Second Cutoff") or (FiveSecondRuleCount <= 0.75)) then return true end
+    if Setting("Five Second Rule") and ((FiveSecondRuleCount) >= Setting("Five Second Cutoff") or (FiveSecondRuleCount <= 0.4)) then return true end
     --print(FiveSecondRuleCount)
 end
 
