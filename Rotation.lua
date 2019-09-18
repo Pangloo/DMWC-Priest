@@ -27,6 +27,7 @@ local function Locals()
     Friends40Y, Friends40YC = Player:GetFriends(40)
     Player40Y, Player40YC = Player:GetEnemies(40)
     MeleeAggro = false
+    Hastar = Target and Target.ValidEnemy and Target.Facing
     for _, Unit in ipairs(Player40Y) do
         if Unit.Distance < 6 and Player.Pointer == Unit.Target then
             MeleeAggro = true
@@ -54,7 +55,7 @@ local function FiveSecond()
         FiveSecondRuleTime = DMW.Time 
     end
     local FiveSecondRuleCount = DMW.Time - FiveSecondRuleTime
-    if FiveSecondRuleCount > 5 then
+    if FiveSecondRuleCount > 6.5 then
         FiveSecondRuleTime = DMW.Time 
     end
     if Setting("Five Second Rule") and ((FiveSecondRuleCount) >= Setting("Five Second Cutoff") or (FiveSecondRuleCount <= 0.4)) then return true end
@@ -81,15 +82,15 @@ local function HEAL()
                 if smartRecast("Renew",Friend) then FiveSecondRuleTime = DMW.Time return true end
             end
             -- Party Flash Heal
-            if Setting("Party - Flash Heal") and Spell.FlashHeal:IsReady() and Friend.HP < Setting("Party - Flash Heal Percent") then
+            if Setting("Party - Flash Heal") and not Player.Moving and Spell.FlashHeal:IsReady() and Friend.HP < Setting("Party - Flash Heal Percent") then
                 if smartRecast("FlashHeal",Friend) then FiveSecondRuleTime = DMW.Time return true end
             end
             -- Party Heal
-            if Setting("Party - Heal") and Friend.HP < Setting("Party - Heal Percent") then
+            if Setting("Party - Heal") and not Player.Moving and Friend.HP < Setting("Party - Heal Percent") then
                 if smartRecast("Heal",Friend) then FiveSecondRuleTime = DMW.Time return true end
             end
             -- Party Lesser Heal
-            if Setting("Party - Lesser Heal") and Spell.LesserHeal:IsReady() and Friend.HP <= Setting("Party - Lesser Heal Percent") then
+            if Setting("Party - Lesser Heal") and not Player.Moving and Spell.LesserHeal:IsReady() and Friend.HP <= Setting("Party - Lesser Heal Percent") then
                 if smartRecast("LesserHeal",Friend) then FiveSecondRuleTime = DMW.Time return true end
             end
             -- Party Shield
@@ -115,11 +116,11 @@ local function DPS()
         end
     end
     --Holy Fire On Target
-    if Setting("Holy Fire") and Spell.HolyFire:IsReady() and Power > Setting("Mana Cut Off") and not Debuff.HolyFire:Exist(Target) then
+    if Hastar and not Player.Moving and Setting("Holy Fire") and Spell.HolyFire:IsReady() and Power > Setting("Mana Cut Off") and not Debuff.HolyFire:Exist(Target) then
         if smartRecast("HolyFire",Target) then return true end
     end
     --Mind Blast Cast
-    if Setting("Mind Blast") and not MeleeAggro and Power > Setting("Mana Cut Off") and Spell.MindBlast:IsReady() then
+    if Hastar and not Player.Moving and Setting("Mind Blast") and not MeleeAggro and Power > Setting("Mana Cut Off") and Spell.MindBlast:IsReady() then
         if IsAutoRepeatSpell(Spell.Shoot.SpellName) then
             MoveForwardStart()
             MoveForwardStop()
@@ -128,11 +129,11 @@ local function DPS()
         if Spell.MindBlast:Cast(Target) then FiveSecondRuleTime = DMW.Time return true end
     end
     --Smite Cast
-    if Setting("Smite") and not MeleeAggro and Power > Setting("Mana Cut Off") then
+    if Hastar and not Player.Moving and Setting("Smite") and not MeleeAggro and Power > Setting("Mana Cut Off") then
         if Spell.Smite:Cast(Target) then FiveSecondRuleTime = DMW.Time return true end
     end
     -- Auto Wand Management
-    if not Player.Moving and not IsAutoRepeatSpell(Spell.Shoot.SpellName) and (DMW.Time - ShootTime) > 0.7 then
+    if Hastar and not Player.Moving and not IsAutoRepeatSpell(Spell.Shoot.SpellName) and (DMW.Time - ShootTime) > 0.7 then
         if Spell.Shoot:Cast(Target) then
             ShootTime = DMW.Time
             return true
@@ -163,11 +164,11 @@ local function DEF()
         if Spell.Renew:Cast(Player) then FiveSecondRuleTime = DMW.Time return true end
     end
     --Defensive Lesser Heal
-    if Setting("Use Lesser Heal") and HP <= Setting("Heal Percent") and Power > 15 then
+    if Setting("Use Lesser Heal") and HP <= Setting("Heal Percent") and Power > 15 and not Player.moving then
         if Spell.LesserHeal:Cast(Player) then return true end
     end
     --Defensive Shield
-    if (Player.Combat or Setting("OoC Shield")) and Setting("Power Word: Shield") and HP <= Setting("Shield Percent") and Power > 30 and not Debuff.WeakenedSoul:Exist(Player) then
+    if (Player.Combat or Setting("OoC Shield")) and Hastar and Setting("Power Word: Shield") and HP <= Setting("Shield Percent") and Power > 30 and not Debuff.WeakenedSoul:Exist(Player) then
         if Spell.PowerWordShield:Cast(Player) then return true end
     end
 end
@@ -179,7 +180,6 @@ function Priest.Rotation()
         -----------------
         --Out Of Combat--
         -----------------
-        if FiveSecond() then return true end
         --Cast SWP on target, regardless of combat
         if Setting("Pull Spell") and Target and Target.ValidEnemy and not Debuff.ShadowWordPain:Exist(Target) then
             if smartRecast("ShadowWordPain",Target) then
@@ -188,7 +188,7 @@ function Priest.Rotation()
         end
         --Mind Blast Snipe (WIP)
         for _, Unit in ipairs(Player40Y) do
-            if Setting("Mind Blast Snipe") and Unit.TTD <= Setting("Snipe TTD") and not Spell.MindBlast:LastCast() then
+            if Unit.Facing and not Player.Moving and Setting("Mind Blast Snipe") and Unit.TTD <= Setting("Snipe TTD") and not Spell.MindBlast:LastCast() then
                 if Spell.MindBlast:Cast(Unit) then FiveSecondRuleTime = DMW.Time return end
             end
         end
@@ -196,6 +196,7 @@ function Priest.Rotation()
         if DEF() then return true end
         -- Call Healing Actionlist
         if HEAL() then return true end
+        if FiveSecond() then return true end
         -----------------
         -----Combat------
         -----------------
