@@ -208,7 +208,7 @@ function Priest.Rotation()
             if Setting("DPS Stuff") then
                 -- Auto Target Enemy regardless of target
                 Player:AutoTarget(40, true)
-                if HUD.TargetLock == 1 and UnitIsFriend(Target) then
+                if HUD.TargetLock == 1 and UnitIsFriend("player","target") then
                     TargetLastEnemy()
                 end
                 -- Call DPS Actionlist
