@@ -180,6 +180,17 @@ function Priest.Rotation()
         -----------------
         --Out Of Combat--
         -----------------
+		        -- Call Defensive Actionlist
+        if DEF() then return true end
+        -- Call Healing Actionlist
+        if HEAL() then return true end
+        if FiveSecond() then return true end
+		--quest targeting
+		if Setting("Auto Target Quest Units") and Player.HP > 90 and Player.PowerPct > 80 then
+            if Player:AutoTargetQuest(30, true) then
+                return true
+            end
+        end
         --Cast SWP on target, regardless of combat
         if Setting("Pull Spell") and Target and Target.ValidEnemy and not Debuff.ShadowWordPain:Exist(Target) then
             if smartRecast("ShadowWordPain",Target) then
@@ -188,27 +199,22 @@ function Priest.Rotation()
         end
         --Mind Blast Snipe (WIP)
         for _, Unit in ipairs(Player40Y) do
-            if Unit.Facing and not Player.Moving and Setting("Mind Blast Snipe") and Unit.TTD <= Setting("Snipe TTD") and not Spell.MindBlast:LastCast() then
+            if Hastar and not Player.Moving and Setting("Mind Blast Snipe") and Unit.TTD <= Setting("Snipe TTD") and not Spell.MindBlast:LastCast() then
                 if Spell.MindBlast:Cast(Unit) then FiveSecondRuleTime = DMW.Time return end
             end
         end
-        -- Call Defensive Actionlist
-        if DEF() then return true end
-        -- Call Healing Actionlist
-        if HEAL() then return true end
-        if FiveSecond() then return true end
         -----------------
         -----Combat------
         -----------------
         if Player.Combat then
             -- Auto attack if no wand is equipped
-            if not DMW.Player.Equipment[18] and not IsCurrentSpell(Spell.Attack.SpellID) then
+            if not DMW.Player.Equipment[18] and not IsCurrentSpell(Spell.Attack.SpellID) and Hastar then
                 StartAttack()
             end
             if Setting("DPS Stuff") then
                 -- Auto Target Enemy regardless of target
                 Player:AutoTarget(40, true)
-                if HUD.TargetLock == 1 and UnitIsFriend("player","target") then
+                if HUD.TargetLock == 1 and UnitIsFriend("player", "target") then
                     TargetLastEnemy()
                 end
                 -- Call DPS Actionlist
