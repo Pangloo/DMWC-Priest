@@ -66,7 +66,7 @@ end
 ----Healing----
 ---------------
 local function HEAL()
-    if Friends40YC >= 1 then
+    if Friends40YC > 1 then
         -- Fort Buff on Party
         if Setting("Fort Buff Spread") then
             for _, Friend in ipairs(Friends40Y) do
