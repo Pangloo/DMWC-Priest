@@ -39,10 +39,13 @@ end
 ----------------
 --Smart Recast--
 ----------------
-local function smartRecast(spell,unit)
+local function smartRecast(spell,unit,rank)
+    if rank == 0 then
+        rank = nil
+    end
     if (not Spell[spell]:LastCast() or (DMW.Player.LastCast[1].SuccessTime and (DMW.Time - DMW.Player.LastCast[1].SuccessTime) > 0.7) or 
         not UnitIsUnit(Spell[spell].LastBotTarget, unit.Pointer)) then 
-            if Spell[spell]:Cast(unit) then return true end
+            return Spell[spell]:Cast(unit,rank)
     end
 end
 
@@ -71,31 +74,31 @@ local function HEAL()
         if Setting("Fort Buff Spread") then
             for _, Friend in ipairs(Friends40Y) do
                 if not Buff.PowerWordFortitude:Exist(Friend) then
-                    if Spell.PowerWordFortitude:Cast(Friend) then return true end
+                    return Spell.PowerWordFortitude:Cast(Friend)
                 end
             end 
         end
         -- Cycle Party HP Values
         for _, Friend in ipairs(Friends40Y) do
             --Party Renew
-            if Setting("Party - Renew") and Friend.HP < Setting("Party - Renew Percent") and not Buff.Renew:Exist(Friend) and Friend:IsTanking() and Buff.Renew:Count() < Setting("Renew Count Limit") then
-                if smartRecast("Renew",Friend) then FiveSecondRuleTime = DMW.Time return true end
+            if Setting("Party - Renew") and Friend.HP <= Setting("Party - Renew Percent") and not Buff.Renew:Exist(Friend) and Friend:IsTanking() and Buff.Renew:Count() < Setting("Renew Count Limit") then
+                FiveSecondRuleTime = DMW.Time return smartRecast("Renew",Friend,Setting("Renew Rank"))
             end
             -- Party Flash Heal
-            if Setting("Party - Flash Heal") and not Player.Moving and Spell.FlashHeal:IsReady() and Friend.HP < Setting("Party - Flash Heal Percent") then
-                if smartRecast("FlashHeal",Friend) then FiveSecondRuleTime = DMW.Time return true end
+            if Setting("Party - Flash Heal") and not Player.Moving and Spell.FlashHeal:IsReady() and Friend.HP <= Setting("Party - Flash Heal Percent") then
+                FiveSecondRuleTime = DMW.Time return smartRecast("FlashHeal",Friend,Setting("Flash Heal Rank"))
             end
             -- Party Heal
-            if Setting("Party - Heal") and not Player.Moving and Friend.HP < Setting("Party - Heal Percent") then
-                if smartRecast("Heal",Friend) then FiveSecondRuleTime = DMW.Time return true end
+            if Setting("Party - Heal") and not Player.Moving and Friend.HP <= Setting("Party - Heal Percent") then
+                FiveSecondRuleTime = DMW.Time return smartRecast("Heal",Friend,Setting("Heal Rank"))
             end
             -- Party Lesser Heal
             if Setting("Party - Lesser Heal") and not Player.Moving and Spell.LesserHeal:IsReady() and Friend.HP <= Setting("Party - Lesser Heal Percent") then
-                if smartRecast("LesserHeal",Friend) then FiveSecondRuleTime = DMW.Time return true end
+                FiveSecondRuleTime = DMW.Time return smartRecast("LesserHeal",Friend,Setting("Lesser Heal Rank"))
             end
             -- Party Shield
-            if Setting("Party - Shield") and Friend.HP < Setting("Party - Shield Percent") and not Buff.PowerWordShield:Exist(Friend) and not Debuff.WeakenedSoul:Exist(Friend) then
-                if smartRecast("PowerWordShield",Friend) then FiveSecondRuleTime = DMW.Time return true end
+            if Setting("Party - Shield") and Friend.HP <= Setting("Party - Shield Percent") and not Buff.PowerWordShield:Exist(Friend) and not Debuff.WeakenedSoul:Exist(Friend) then
+                FiveSecondRuleTime = DMW.Time return smartRecast("PowerWordShield",Friend,Setting("Shield Rank"))
             end
         end
     end
@@ -108,16 +111,14 @@ local function DPS()
     --Shadow Word Pain Spread
     if Setting("Shadow Word: Pain") then
         for _, Unit in ipairs(Player40Y) do
-            if Debuff.ShadowWordPain:Refresh(Unit) and (Unit.TTD - Debuff.ShadowWordPain:Remain(Unit)) > 4 or not Debuff.ShadowWordPain:Exist(Unit) then
-                if smartRecast("ShadowWordPain",Unit) then FiveSecondRuleTime = DMW.Time
-                    return true
-                end
+            if Debuff.ShadowWordPain:Refresh(Unit) and (Unit.TTD - Debuff.ShadowWordPain:Remain(Unit)) > 4 or not Debuff.ShadowWordPain:Exist(Unit) then FiveSecondRuleTime = DMW.Time
+                return smartRecast("ShadowWordPain",Unit)
             end
         end
     end
     --Holy Fire On Target
-    if Hastar and not Player.Moving and Setting("Holy Fire") and Spell.HolyFire:IsReady() and Power > Setting("Mana Cut Off") and not Debuff.HolyFire:Exist(Target) then
-        if smartRecast("HolyFire",Target) then return true end
+    if Hastar and not Player.Moving and Setting("Holy Fire") and Spell.HolyFire:IsReady() and Power > Setting("Mana Cut Off") and not Debuff.HolyFire:Exist(Target) then 
+        return smartRecast("HolyFire",Target)
     end
     --Mind Blast Cast
     if Hastar and not Player.Moving and Setting("Mind Blast") and not MeleeAggro and Power > Setting("Mana Cut Off") and Spell.MindBlast:IsReady() then
@@ -125,51 +126,58 @@ local function DPS()
             MoveForwardStart()
             MoveForwardStop()
             ShootTime = DMW.Time
+            FiveSecondRuleTime = DMW.Time
+            return Spell.MindBlast:Cast(Target)
         end
-        if Spell.MindBlast:Cast(Target) then FiveSecondRuleTime = DMW.Time return true end
     end
     --Smite Cast
     if Hastar and not Player.Moving and Setting("Smite") and not MeleeAggro and Power > Setting("Mana Cut Off") then
-        if Spell.Smite:Cast(Target) then FiveSecondRuleTime = DMW.Time return true end
+        FiveSecondRuleTime = DMW.Time return Spell.Smite:Cast(Target)
     end
     -- Auto Wand Management
-    if Hastar and not Player.Moving and not IsAutoRepeatSpell(Spell.Shoot.SpellName) and (DMW.Time - ShootTime) > 0.7 then
-        if Spell.Shoot:Cast(Target) then
-            ShootTime = DMW.Time
-            return true
-        end
+    if Hastar and not Player.Moving and not IsAutoRepeatSpell(Spell.Shoot.SpellName) and (DMW.Time - ShootTime) > 0.3 then
+        ShootTime = DMW.Time
+        return Spell.Shoot:Cast(Target)
     end
 end
 
 local function DEF()
+    --Lulwtf
+    if Setting("Fuck Yeah") then
+        for _, Unit in pairs(DMW.Units) do
+            if Unit.Player and Unit.Distance < 30 and not Buff.PowerWordFortitude:Exist(Unit) then
+                return Spell.PowerWordFortitude:Cast(Unit)
+            end
+        end
+    end
     --Auto Fade
     if Setting("Auto Fade") and Player:IsTanking() and Friends40YC > 1 and Spell.Fade:IsReady() then
-        if Spell.Fade:Cast(Player) then return true end
+        return Spell.Fade:Cast(Player)
     end
 
     --Fortitude Self Check
     if not Buff.PowerWordFortitude:Exist(Player) then 
-        if Spell.PowerWordFortitude:Cast(Player) then return true end
+        return Spell.PowerWordFortitude:Cast(Player)
     end
     --Inner Fire Self Check
 	if Setting("Auto Inner Fire") and not Buff.InnerFire:Exist(Player) then 
-        if Spell.InnerFire:Cast(Player) then return true end
+        return Spell.InnerFire:Cast(Player)
     end
     --ShadowGuard Self Check
     if Setting("Auto Shadowguard") and not Buff.Shadowguard:Exist(Player) then
-        if Spell.Shadowguard:Cast(Player) then return true end
+        return Spell.Shadowguard:Cast(Player)
     end
     --Defensive Renew
     if not Buff.Renew:Exist(Player) and Setting("Renew") and (HP <= Setting("Renew Percent") or (not Player.Combat and HP < 80)) and Power > 15 then
-        if Spell.Renew:Cast(Player) then FiveSecondRuleTime = DMW.Time return true end
+        FiveSecondRuleTime = DMW.Time return smartRecast("Renew",Player,Setting("Renew Rank"))
     end
     --Defensive Lesser Heal
     if Setting("Use Lesser Heal") and HP <= Setting("Heal Percent") and Power > 15 and not Player.moving then
-        if Spell.LesserHeal:Cast(Player) then return true end
+        return smartRecast("LesserHeal",Player,Setting("Lesser Heal Rank"))
     end
     --Defensive Shield
     if (Player.Combat or Setting("OoC Shield")) and Hastar and Setting("Power Word: Shield") and HP <= Setting("Shield Percent") and Power > 30 and not Debuff.WeakenedSoul:Exist(Player) then
-        if Spell.PowerWordShield:Cast(Player) then return true end
+        return smartRecast("PowerWordShield",Player,Setting("Shield Rank"))
     end
 end
 
@@ -181,10 +189,10 @@ function Priest.Rotation()
         --Out Of Combat--
         -----------------
 		        -- Call Defensive Actionlist
-        if DEF() then return true end
+        if DEF() then return end
         -- Call Healing Actionlist
-        if HEAL() then return true end
-        if FiveSecond() then return true end
+        if HEAL() then return end
+        if FiveSecond() then return end
 		--quest targeting
 		if Setting("Auto Target Quest Units") and Player.HP > 90 and Player.PowerPct > 80 then
             if Player:AutoTargetQuest(30, true) then
@@ -193,9 +201,7 @@ function Priest.Rotation()
         end
         --Cast SWP on target, regardless of combat
         if Setting("Pull Spell") and Target and Target.ValidEnemy and not Debuff.ShadowWordPain:Exist(Target) then
-            if smartRecast("ShadowWordPain",Target) then
-                return true
-            end
+            return smartRecast("ShadowWordPain",Target)
         end
         --Mind Blast Snipe (WIP)
         for _, Unit in ipairs(Player40Y) do
@@ -208,18 +214,18 @@ function Priest.Rotation()
         -----------------
         if Player.Combat then
             -- Auto attack if no wand is equipped
-            if not DMW.Player.Equipment[18] and not IsCurrentSpell(Spell.Attack.SpellID) and Hastar then
-                StartAttack()
-            end
             if Setting("DPS Stuff") then
                 -- Auto Target Enemy regardless of target
                 Player:AutoTarget(40, true)
+                if not DMW.Player.Equipment[18] and not IsCurrentSpell(Spell.Attack.SpellID) and Hastar then
+                    StartAttack()
+                end
                 if HUD.TargetLock == 1 and UnitIsFriend("player", "target") then
                     TargetLastEnemy()
                 end
                 -- Call DPS Actionlist
                 if DPS() then
-                    return true
+                    return
                 end
             end
         end
