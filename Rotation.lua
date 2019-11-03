@@ -79,7 +79,7 @@ local function HEAL()
                 end
             end 
         end
-        if Setting("Auto Dispel") then
+        if HUD.Dispel == 1 then
             for _, Friend in ipairs(Friends40Y) do
                 if Friend:Dispel(Spell.DispelMagic) then return smartRecast("DispelMagic",Friend,nil) end
             end

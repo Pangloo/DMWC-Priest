@@ -12,7 +12,14 @@ function Priest.Settings()
                         [1] = {Text = "Enemy Target Lock |cFF00FF00On", Tooltip = ""},
                         [2] = {Text = "Enemy Target Lock |cFFFFFF00Off", Tooltip = ""}
                         }
+                    },
+                [2] = {
+                    Dispel = {
+                        [1] = {Text = "Auto Dispel On", Tooltip = ""},
+                        [2] = {Text = "Auto Dispel Off", Tooltip = ""}
                     }
+
+                }
                 }
                 
 --[[         UI.AddHeader("General Options")
