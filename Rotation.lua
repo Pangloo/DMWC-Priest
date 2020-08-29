@@ -4,7 +4,6 @@ local Player, Buff, Debuff, Health, Power, Spell, Target, Trait, Talent, Item, G
 local Rotation = DMW.Helpers.Rotation
 local Setting = DMW.Helpers.Rotation.Setting
 local ShootTime = GetTime()
---test
 
 
 --------------
